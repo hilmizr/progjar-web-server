@@ -28,7 +28,7 @@ public class WebServerAssignment {
                 while (true) {
                     Socket client = server.accept();
                     System.out.println("New client connected: " + client.getInetAddress().getHostName());
-                    Thread t = new ClientHandler(client, config.getRootDirectory());
+                    Thread t = new ClientHandler(client, config);
                     t.start();
                 }
             } catch (IOException e) {

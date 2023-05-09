@@ -21,11 +21,11 @@ import java.util.Date;
 public class ClientHandler extends Thread {
 
     private final Socket client;
-    private final String rootDirectory;
+    private final Config config;
 
-    public ClientHandler(Socket client, String rootDirectory) {
+    public ClientHandler(Socket client, Config config) {
         this.client = client;
-        this.rootDirectory = rootDirectory;
+        this.config = config;
     }
 
     @Override
@@ -39,9 +39,28 @@ public class ClientHandler extends Thread {
             String request = in.readLine();
             System.out.println("Received request: " + request);
 
-            // Extract the requested file name from the request
+            // Extract the requested file name and host from the request
             String[] requestParts = request.split(" ");
             String fileName = requestParts[1];
+
+            // Read the host header to determine the domain
+            String domain = null;
+            String line;
+            while (!(line = in.readLine()).isEmpty()) {
+                String[] parts = line.split(": ");
+                if (parts[0].equalsIgnoreCase("Host")) {
+                    domain = parts[1].split(":")[0];  // remove port if present
+                    break;
+                }
+            }
+
+            // Determine the root directory based on the domain
+            String rootDirectory = config.getRootDirectory(domain);
+            if (rootDirectory == null) {
+                // Unknown domain
+                sendErrorResponse(out, "404 Not Found", "The requested domain is not served by this server.");
+                return;
+            }
 
             // Check if the requested file is a text/HTML file or a binary file
             String contentTypeHeader;
@@ -114,4 +133,16 @@ public class ClientHandler extends Thread {
         fis.close();
         return content;
     }
+
+    private void sendErrorResponse(OutputStream out, String status, String message) throws IOException {
+        String statusLine = "HTTP/1.1 " + status + "\r\n";
+        String contentTypeHeader = "Content-Type: text/html\r\n";
+        byte[] messageBody = ("<html><body><h1>" + status + "</h1><p>" + message + "</p></body></html>").getBytes();
+        String responseHeaders = statusLine + contentTypeHeader + "\r\n";
+        byte[] response = new byte[responseHeaders.getBytes().length + messageBody.length];
+        System.arraycopy(responseHeaders.getBytes(), 0, response, 0, responseHeaders.getBytes().length);
+        System.arraycopy(messageBody, 0, response, responseHeaders.getBytes().length, messageBody.length);
+        out.write(response);
+    }
+
 }

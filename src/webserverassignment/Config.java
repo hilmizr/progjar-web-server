@@ -8,16 +8,22 @@ package webserverassignment;
  *
  * @author Hp
  */
-public class Config {
+import java.util.HashMap;
+import java.util.Map;
 
+public class Config {
     private final String ipAddress;
     private final int port;
-    private final String rootDirectory;
+    private final Map<String, String> domainRootDirectoryMap;
 
-    public Config(String ipAddress, int port, String rootDirectory) {
+    public Config(String ipAddress, int port) {
         this.ipAddress = ipAddress;
         this.port = port;
-        this.rootDirectory = rootDirectory;
+        this.domainRootDirectoryMap = new HashMap<>();
+    }
+
+    public void addDomain(String domain, String rootDirectory) {
+        domainRootDirectoryMap.put(domain, rootDirectory);
     }
 
     public String getIpAddress() {
@@ -28,7 +34,8 @@ public class Config {
         return port;
     }
 
-    public String getRootDirectory() {
-        return rootDirectory;
+    public String getRootDirectory(String domain) {
+        return domainRootDirectoryMap.get(domain);
     }
 }
+

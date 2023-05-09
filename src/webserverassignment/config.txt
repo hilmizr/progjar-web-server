@@ -1,4 +1,4 @@
 # Configuration for Web Server
 IP_ADDRESS=127.0.0.1
 PORT=8080
-ROOT_DIRECTORY=D:/Document/NetBeansProjects/WebServerAssignment/root
+progjar.local_ROOT_DIRECTORY=D:/Document/NetBeansProjects/WebServerAssignment/root

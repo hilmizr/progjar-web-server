@@ -21,7 +21,7 @@ public class ConfigHandler {
             String line;
             String ipAddress = null;
             int port = 0;
-            String rootDirectory = null;
+            Config config = null;
 
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
@@ -43,24 +43,26 @@ public class ConfigHandler {
                 } else if (key.equalsIgnoreCase("PORT")) {
                     try {
                         port = Integer.parseInt(value);
+                        config = new Config(ipAddress, port);
                     } catch (NumberFormatException e) {
                         System.out.println("Invalid port number: " + value);
                         return null;
                     }
-                } else if (key.equalsIgnoreCase("ROOT_DIRECTORY")) {
-                    rootDirectory = value;
+                } else if (key.toUpperCase().endsWith("_ROOT_DIRECTORY")) {
+                    String domain = key.substring(0, key.indexOf("_ROOT_DIRECTORY")).toLowerCase();
+                    config.addDomain(domain, value);
                 } else {
                     System.out.println("Unknown configuration key: " + key);
                     return null;
                 }
             }
 
-            if (ipAddress == null || port == 0 || rootDirectory == null) {
+            if (ipAddress == null || port == 0 || config == null) {
                 System.out.println("Incomplete configuration");
                 return null;
             }
 
-            return new Config(ipAddress, port, rootDirectory);
+            return config;
         } catch (IOException e) {
             System.out.println("Error reading configuration file: " + fileName);
             return null;
@@ -85,3 +87,4 @@ public class ConfigHandler {
         }
     }
 }
+
