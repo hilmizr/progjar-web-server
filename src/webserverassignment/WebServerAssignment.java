@@ -8,47 +8,48 @@ import java.io.*;
 import java.net.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 
 public class WebServerAssignment {
 
-    public static void main(String[] args) {
-        // Read configuration from file
-        Config config = readConfigFromFile("C:/Users/ASUS/Documents/GitHub/progjar-web-server/src/webserverassignment/config.txt");
-        if (config == null) {
-            System.out.println("Invalid configuration, exiting...");
-            return;
+   public static void main(String[] args) {
+    // Read configuration from file
+    Config config = readConfigFromFile("C:/Users/Asus/Documents/NetBeansProjects/progjar-web-server/src/webserverassignment/config.txt");
+    if (config == null) {
+        System.out.println("Invalid configuration, exiting...");
+        return;
+    }
+
+    boolean isRunning = true;
+    while (isRunning) {
+        try {
+            ServerSocket server = new ServerSocket(config.getPort(), 0, InetAddress.getByName(config.getIpAddress()));
+            System.out.println("Server started. Waiting for clients...");
+            while (true) {
+                Socket client = server.accept();
+                System.out.println("New client connected: " + client.getInetAddress().getHostName());
+                Thread t = new ClientHandler(client, config); // Pass the entire config object
+                t.start();
+            }
+        } catch (IOException e) {
+            System.err.println("Exception caught: " + e);
         }
 
-        boolean isRunning = true;
-        while (isRunning) {
-            try {
-                ServerSocket server = new ServerSocket(config.getPort(), 0, InetAddress.getByName(config.getIpAddress()));
-                System.out.println("Server started. Waiting for clients...");
-                while (true) {
-                    Socket client = server.accept();
-                    System.out.println("New client connected: " + client.getInetAddress().getHostName());
-                    Thread t = new ClientHandler(client, config.getRootDirectory());
-                    t.start();
-                }
-            } catch (IOException e) {
-                System.err.println("Exception caught: " + e);
+        // Prompt the user to input a command to stop or restart the server
+        System.out.println("Type 'stop' to stop the server, or 'restart' to restart the server:");
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        try {
+            String command = in.readLine().trim();
+            if (command.equals("stop")) {
+                isRunning = false;
+            } else if (!command.equals("restart")) {
+                System.out.println("Invalid command, continuing...");
             }
-
-            // Prompt the user to input a command to stop or restart the server
-            System.out.println("Type 'stop' to stop the server, or 'restart' to restart the server:");
-            BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-            try {
-                String command = in.readLine().trim();
-                if (command.equals("stop")) {
-                    isRunning = false;
-                } else if (!command.equals("restart")) {
-                    System.out.println("Invalid command, continuing...");
-                }
-            } catch (IOException e) {
-                System.out.println("Error reading input");
-            }
+        } catch (IOException e) {
+            System.out.println("Error reading input");
         }
     }
+}
 
     private static Config readConfigFromFile(String fileName) {
         try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
@@ -56,6 +57,7 @@ public class WebServerAssignment {
             String ipAddress = null;
             int port = 0;
             String rootDirectory = null;
+            HashMap<String, String> websites = new HashMap<>();
 
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
@@ -68,6 +70,7 @@ public class WebServerAssignment {
                     System.out.println("Invalid configuration line: " + line);
                     return null;
                 }
+                
 
                 String key = parts[0].trim();
                 String value = parts[1].trim();
@@ -83,7 +86,12 @@ public class WebServerAssignment {
                     }
                 } else if (key.equalsIgnoreCase("ROOT_DIRECTORY")) {
                     rootDirectory = value;
-                } else {
+                }
+                else if (key.startsWith("ROOT_DIRECTORY_")) {
+                     String domain = key.substring("ROOT_DIRECTORY_".length());
+                         websites.put(domain, value);
+                }
+                else {
                     System.out.println("Unknown configuration key: " + key);
                     return null;
                 }
@@ -94,23 +102,24 @@ public class WebServerAssignment {
                 return null;
             }
 
-            return new Config(ipAddress, port, rootDirectory);
+            return new Config(ipAddress, port, websites);
         } catch (IOException e) {
             System.out.println("Error reading configuration file: " + fileName);
             return null;
         }
     }
 
-    private static class Config {
-        private final String ipAddress;
-        private final int port;
-        private final String rootDirectory;
+private static class Config {
+    private final String ipAddress;
+    private final int port;
+    private final HashMap<String, String> websites;
 
-        public Config(String ipAddress, int port, String rootDirectory) {
-            this.ipAddress = ipAddress;
-            this.port = port;
-            this.rootDirectory = rootDirectory;
-        }
+    public Config(String ipAddress, int port, HashMap<String, String> websites) {
+        this.ipAddress = ipAddress;
+        this.port = port;
+        this.websites = websites;
+    }
+
 
         public String getIpAddress() {
             return ipAddress;
@@ -120,9 +129,61 @@ public class WebServerAssignment {
             return port;
         }
 
-        public String getRootDirectory() {
-            return rootDirectory;
+        public String getRootDirectory(String domain) {
+             
+        return websites.get(domain);
+    }
+    }
+private static class Config {
+    private final String ipAddress;
+    private final int port;
+    private final HashMap<String, String> websites;
+
+    public Config(String ipAddress, int port, HashMap<String, String> websites) {
+        this.ipAddress = ipAddress;
+        this.port = port;
+        this.websites = websites;
+    }
+
+
+        public String getIpAddress() {
+            return ipAddress;
         }
+
+        public int getPort() {
+            return port;
+        }
+
+        public String getRootDirectory(String domain) {
+             
+        return websites.get(domain);
+    }
+    }
+
+private static class Config {
+    private final String ipAddress;
+    private final int port;
+    private final HashMap<String, String> websites;
+
+    public Config(String ipAddress, int port, HashMap<String, String> websites) {
+        this.ipAddress = ipAddress;
+        this.port = port;
+        this.websites = websites;
+    }
+
+
+        public String getIpAddress() {
+            return ipAddress;
+        }
+
+        public int getPort() {
+            return port;
+        }
+
+        public String getRootDirectory(String domain) {
+             
+        return websites.get(domain);
+    }
     }
 
 
@@ -144,13 +205,15 @@ public class WebServerAssignment {
         }
     }
 
+ 
+
     private static class ClientHandler extends Thread {
     private final Socket client;
-    private final String rootDirectory;
+    private final Config config;
 
-    public ClientHandler(Socket client, String rootDirectory) {
+    public ClientHandler(Socket client, Config config) {
         this.client = client;
-        this.rootDirectory = rootDirectory;
+        this.config = config;
     }
 
     @Override
@@ -168,27 +231,46 @@ public class WebServerAssignment {
             String[] requestParts = request.split(" ");
             String fileName = requestParts[1];
 
+            // Parse the "Host" header from the incoming request to get the requested domain
+            String hostHeader = null;
+            while (in.ready()) {
+                String headerLine = in.readLine();
+                if (headerLine.toLowerCase().startsWith("host:")) {
+                    hostHeader = headerLine.substring(5).trim();
+                    break;
+                }
+            }
+
+            // Get the root directory for the requested domain using the getRootDirectory method
+            String domain = hostHeader.split(":")[0]; // Remove the port number, if any
+            String websiteRootDirectory = config.getRootDirectory(domain);
+
             // Check if the requested file is a text/HTML file or a binary file
             String contentTypeHeader;
 
             // Construct the HTTP response
             String statusLine;
             byte[] messageBody;
-            File file = new File(rootDirectory + fileName);
-            if (file.isDirectory()) {
-                File indexFile = new File(file, "index.html");
-                if (indexFile.exists()) {
-                    file = indexFile;
-                    statusLine = "HTTP/1.1 200 OK\r\n";
-                    messageBody = getBinaryFileContent(file);
-                    contentTypeHeader = "Content-Type: text/html\r\n";
-                } else {
-                    statusLine = "HTTP/1.1 200 OK\r\n";
-                    messageBody = generateDirectoryListing(file, fileName).getBytes();
-                    contentTypeHeader = "Content-Type: text/html\r\n";
-                }
-            } else if (file.exists())
-                {
+            if (websiteRootDirectory == null) {
+                // Send a 404 response if the domain is not found
+                statusLine = "HTTP/1.1 404 Not Found\r\n";
+                messageBody = ("<html><body><h1>404 Domain Not Found</h1></body></html>").getBytes();
+                contentTypeHeader = "Content-Type: text/html\r\n";
+            } else {
+                File file = new File(websiteRootDirectory + fileName);
+                if (file.isDirectory()) {
+                    File indexFile = new File(file, "index.html");
+                    if (indexFile.exists()) {
+                        file = indexFile;
+                        statusLine = "HTTP/1.1 200 OK\r\n";
+                        messageBody = getBinaryFileContent(file);
+                        contentTypeHeader = "Content-Type: text/html\r\n";
+                    } else {
+                        statusLine = "HTTP/1.1 200 OK\r\n";
+                        messageBody = generateDirectoryListing(file, fileName).getBytes();
+                        contentTypeHeader = "Content-Type: text/html\r\n";
+                    }
+                } else if (file.exists()) {
                     statusLine = "HTTP/1.1 200 OK\r\n";
                     messageBody = getBinaryFileContent(file);
                     if (fileName.endsWith(".html") || fileName.endsWith(".txt")) {
@@ -201,21 +283,23 @@ public class WebServerAssignment {
                     messageBody = ("<html><body><h1>404 Not Found</h1></body></html>").getBytes();
                     contentTypeHeader = "Content-Type: text/html\r\n";
                 }
-
-                // Send the HTTP response to the client
-                String responseHeaders = statusLine + contentTypeHeader + "\r\n";
-                byte[] response = new byte[responseHeaders.getBytes().length + messageBody.length];
-                System.arraycopy(responseHeaders.getBytes(), 0, response, 0, responseHeaders.getBytes().length);
-                System.arraycopy(messageBody, 0, response, responseHeaders.getBytes().length, messageBody.length);
-                out.write(response);
-
-                // Close the client socket
-                client.close();
-                System.out.println("Connection closed: " + client.getInetAddress().getHostName());
-            } catch (IOException e) {
-                System.err.println("Exception caught: " + e);
             }
-        }
+
+            // Send the HTTP response to the client
+            String responseHeaders = statusLine + contentTypeHeader + "\r\n";
+            byte[] response = new byte[responseHeaders.getBytes().length + messageBody.length];
+            System.arraycopy(responseHeaders.getBytes(), 0, response, 0, responseHeaders.getBytes().length);
+            System.arraycopy(messageBody, 0, response, responseHeaders.getBytes().length, messageBody.length); out.write(response); out.flush();
+
+        // Close the client connection
+        client.close();
+        System.out.println("Connection closed.");
+
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
 
         private String generateDirectoryListing(File directory, String fileName) {
             StringBuilder html = new StringBuilder("<html><body><h1>Directory Listing</h1><table><tr><th>Name</th><th>Last Modified</th><th>Size</th></tr>");
