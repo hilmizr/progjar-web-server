@@ -12,21 +12,22 @@ import java.util.Date;
 public class WebServerAssignment {
 
     public static void main(String[] args) {
-        String rootDirectory = getRootDirectoryFromUser();
-        if (rootDirectory == null) {
-            System.out.println("Invalid root directory, exiting...");
+        // Read configuration from file
+        Config config = readConfigFromFile("C:/Users/ASUS/Documents/GitHub/progjar-web-server/src/webserverassignment/config.txt");
+        if (config == null) {
+            System.out.println("Invalid configuration, exiting...");
             return;
         }
 
         boolean isRunning = true;
         while (isRunning) {
             try {
-                ServerSocket server = new ServerSocket(8080);
+                ServerSocket server = new ServerSocket(config.getPort(), 0, InetAddress.getByName(config.getIpAddress()));
                 System.out.println("Server started. Waiting for clients...");
                 while (true) {
                     Socket client = server.accept();
                     System.out.println("New client connected: " + client.getInetAddress().getHostName());
-                    Thread t = new ClientHandler(client, rootDirectory);
+                    Thread t = new ClientHandler(client, config.getRootDirectory());
                     t.start();
                 }
             } catch (IOException e) {
@@ -48,6 +49,82 @@ public class WebServerAssignment {
             }
         }
     }
+
+    private static Config readConfigFromFile(String fileName) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+            String line;
+            String ipAddress = null;
+            int port = 0;
+            String rootDirectory = null;
+
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.startsWith("#") || line.isEmpty()) {
+                    continue; // Skip comments and empty lines
+                }
+
+                String[] parts = line.split("=");
+                if (parts.length != 2) {
+                    System.out.println("Invalid configuration line: " + line);
+                    return null;
+                }
+
+                String key = parts[0].trim();
+                String value = parts[1].trim();
+
+                if (key.equalsIgnoreCase("IP_ADDRESS")) {
+                    ipAddress = value;
+                } else if (key.equalsIgnoreCase("PORT")) {
+                    try {
+                        port = Integer.parseInt(value);
+                    } catch (NumberFormatException e) {
+                        System.out.println("Invalid port number: " + value);
+                        return null;
+                    }
+                } else if (key.equalsIgnoreCase("ROOT_DIRECTORY")) {
+                    rootDirectory = value;
+                } else {
+                    System.out.println("Unknown configuration key: " + key);
+                    return null;
+                }
+            }
+
+            if (ipAddress == null || port == 0 || rootDirectory == null) {
+                System.out.println("Incomplete configuration");
+                return null;
+            }
+
+            return new Config(ipAddress, port, rootDirectory);
+        } catch (IOException e) {
+            System.out.println("Error reading configuration file: " + fileName);
+            return null;
+        }
+    }
+
+    private static class Config {
+        private final String ipAddress;
+        private final int port;
+        private final String rootDirectory;
+
+        public Config(String ipAddress, int port, String rootDirectory) {
+            this.ipAddress = ipAddress;
+            this.port = port;
+            this.rootDirectory = rootDirectory;
+        }
+
+        public String getIpAddress() {
+            return ipAddress;
+        }
+
+        public int getPort() {
+            return port;
+        }
+
+        public String getRootDirectory() {
+            return rootDirectory;
+        }
+    }
+
 
     private static String getRootDirectoryFromUser() {
         System.out.println("---------------------------");

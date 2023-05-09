@@ -1,0 +1,4 @@
+# Configuration for Web Server
+IP_ADDRESS=127.0.0.1
+PORT=8080
+ROOT_DIRECTORY=/Users/ASUS/Documents/GitHub/progjar-web-server/root
