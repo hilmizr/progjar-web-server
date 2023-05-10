@@ -7,6 +7,10 @@ package webserverassignment;
 import java.io.*;
 import java.net.*;
 
+/**
+ *
+ * @author Hp
+ */
 public class WebServerAssignment {
 
     public static void main(String[] args) {
