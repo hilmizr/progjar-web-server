@@ -72,47 +72,44 @@ public class ClientHandler extends Thread {
 
         // Construct the HTTP response
         String statusLine;
-        byte[] messageBody;
         File file = new File(rootDirectory + fileName);
         if (file.isDirectory()) {
             File indexFile = new File(file, "index.html");
             if (indexFile.exists()) {
                 file = indexFile;
                 statusLine = "HTTP/1.1 200 OK\r\n";
-                messageBody = getBinaryFileContent(file);
                 contentTypeHeader = "Content-Type: text/html\r\n";
+                out.write((statusLine + contentTypeHeader + "\r\n").getBytes());
+                getBinaryFileContent(file, out);
             } else {
                 statusLine = "HTTP/1.1 200 OK\r\n";
-                messageBody = generateDirectoryListing(file, fileName).getBytes();
                 contentTypeHeader = "Content-Type: text/html\r\n";
+                out.write((statusLine + contentTypeHeader + "\r\n" + generateDirectoryListing(file, fileName)).getBytes());
             }
         } else if (file.exists()) {
             statusLine = "HTTP/1.1 200 OK\r\n";
-            messageBody = getBinaryFileContent(file);
             if (fileName.endsWith(".html") || fileName.endsWith(".txt")) {
                 contentTypeHeader = "Content-Type: text/html\r\n";
             } else {
                 contentTypeHeader = "Content-Type: application/octet-stream\r\n";
             }
+            out.write((statusLine + contentTypeHeader + "\r\n").getBytes());
+            getBinaryFileContent(file, out);
         } else {
             statusLine = "HTTP/1.1 404 Not Found\r\n";
-            messageBody = ("<html><body><h1>404 Not Found</h1></body></html>").getBytes();
             contentTypeHeader = "Content-Type: text/html\r\n";
+            out.write((statusLine + contentTypeHeader + "\r\n<html><body><h1>404 Not Found</h1></body></html>").getBytes());
         }
+    }
 
-        // Send the HTTP response to the client
-        String responseHeaders = statusLine + contentTypeHeader;
-        if (keepAlive) {
-            responseHeaders += "Connection: keep-alive\r\n";
-        } else {
-            responseHeaders += "Connection: close\r\n";
+    private void getBinaryFileContent(File file, OutputStream out) throws IOException {
+        try (FileInputStream fis = new FileInputStream(file)) {
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+            }
         }
-        responseHeaders += "\r\n";
-
-        byte[] response = new byte[responseHeaders.getBytes().length + messageBody.length];
-        System.arraycopy(responseHeaders.getBytes(), 0, response, 0, responseHeaders.getBytes().length);
-        System.arraycopy(messageBody, 0, response, responseHeaders.getBytes().length, messageBody.length);
-        out.write(response);
     }
 
     private String generateDirectoryListing(File directory, String fileName) {
@@ -129,13 +126,5 @@ public class ClientHandler extends Thread {
         }
         html.append("</table></body></html>");
         return html.toString();
-    }
-
-    private byte[] getBinaryFileContent(File file) throws IOException {
-        byte[] content = new byte[(int) file.length()];
-        FileInputStream fis = new FileInputStream(file);
-        fis.read(content);
-        fis.close();
-        return content;
     }
 }

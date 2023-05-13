@@ -18,8 +18,8 @@ public class WebServerAssignment {
         ConfigHandler configHandler = new ConfigHandler();
         String configFilePath = configHandler.getConfigFilePathFromUser();
         Config config = configHandler.readConfigFromFile(configFilePath);
-        if (configFilePath == null) {
-            System.out.println("Invalid configuration file path, exiting...");
+        if (config == null) { // check if the config is null, not the configFilePath
+            System.out.println("Invalid configuration file, exiting...");
             return;
         }
 
@@ -29,9 +29,13 @@ public class WebServerAssignment {
                 System.out.println("---------------------------");
                 ServerSocket server = new ServerSocket(config.getPort(), 0, InetAddress.getByName(config.getIpAddress()));
                 System.out.println("Server started. Waiting for clients...");
-                while (true) {
+
+                // Continuously accept new connections
+                while (isRunning) {
                     Socket client = server.accept();
                     System.out.println("New client connected: " + client.getInetAddress().getHostName());
+
+                    // Start a new thread to handle the client's requests
                     Thread t = new ClientHandler(client, config.getRootDirectory());
                     t.start();
                 }
@@ -54,5 +58,5 @@ public class WebServerAssignment {
             }
         }
     }
-
 }
+
